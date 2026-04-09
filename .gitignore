@@ -2,3 +2,6 @@ venv/
 dataset-MNIST.zip
 dataset-tiny-imagenet.zip
 .DS_Store
+
+dataset-MNIST/
+dataset-tiny-imagenet/
