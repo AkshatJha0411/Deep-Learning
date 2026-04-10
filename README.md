@@ -1,6 +1,6 @@
 # Deep Learning Assignments
 
-This repository contains the implementation and analysis for Deep Learning assignments, covering the fundamentals of neural networks (from scratch) to Convolutional Neural Networks (CNNs).
+This repository contains the implementation and analysis for Deep Learning assignments, covering the fundamentals of neural networks (from scratch), Convolutional Neural Networks (CNNs), Autoencoders (AE/DAE), and Variational Autoencoders (VAE).
 
 <!-- ### Equations from the Assignment 1 and Report
 
@@ -20,7 +20,7 @@ Here are the key equations extracted and formatted properly from the provided do
 
 (Note: No other explicit equations are visible in the provided image texts. Binary Cross-Entropy loss is mentioned but not equation-formatted in the images.) -->
 
-# Fully Connected Neural Net (FCNN) Assignment
+# Assignment 1: Fully Connected Neural Net (FCNN) 
 
 ## Overview
 **Title:** Coding Assignment: Fully Connected Neural Net (FCNN)  
@@ -110,7 +110,7 @@ Here are the key equations extracted and formatted properly from the provided do
 
 (Note: Other concepts like weight sharing or augmentation are descriptive; no additional explicit equations in the provided texts.) -->
 
-# Convolutional Neural Net (CNN) Assignment
+# Assignment 2: Convolutional Neural Net (CNN) 
 
 ## Overview
 **Title:** Coding Assignment: Convolutional Neural Net (CNN)  
@@ -135,6 +135,8 @@ Here are the key equations extracted and formatted properly from the provided do
 **Description:** Train on MNIST: Model A (best FCNN from Assignment 1) vs. Model B (simple 2-layer CNN). Create "Shifted MNIST" by translating images 4 pixels right. Report accuracy drop; analyze why CNN is robust (weight sharing).  
 
 **Analysis:** Normal: FCNN ~98%, CNN ~99%. Shifted: FCNN drops ~20-30% (loses spatial structure); CNN drops ~5-10% (translation tolerance via shared weights and pooling). Weight sharing enables local pattern detection invariant to position.
+
+![FCNN vs CNN on Original and Shifted MNIST](A2/2_FCNN-vs-CNN-on-original-and-shifted-mnist.png)
 
 ## Part 3: Feature Extraction & Visual Interpretability
 **Goal:** Visualizing how the machine "sees" textures vs. objects.  
@@ -166,3 +168,223 @@ Here are the key equations extracted and formatted properly from the provided do
 - CNNs provide spatial inductive bias via weight sharing/pooling, hierarchical features, and stability fixes.  
 - Superior to FCNNs for vision: Robust to shifts, interpretable filters, efficient deep training.  
 - Experiments highlight geometry's role in efficiency and augmentation's in robustness.  
+
+---
+
+<!-- ### Equations from the Assignment 3 and Report
+
+Here are the key equations extracted and formatted properly from the provided documents. I've presented each on a new line in a mathematical equation style (using LaTeX-like notation for clarity, as it's common for equations in text).
+
+1. **Autoencoder Reconstruction Loss (BCE)** (from Assignment Part 1):  
+   \[ \mathcal{L}_{\text{recon}} = -\sum_{i} \left[ x_i \log(\hat{x}_i) + (1 - x_i) \log(1 - \hat{x}_i) \right] \]  
+   (Binary Cross-Entropy between input x and reconstruction x̂.)
+
+2. **Denoising Autoencoder Training Objective (MSE)** (from Assignment Part 2):  
+   \[ \mathcal{L}_{\text{DAE}} = \frac{1}{N} \sum_{i=1}^{N} \| x_i - f(\tilde{x}_i) \|^2 \]  
+   (Mean Squared Error between clean image x and reconstruction of noisy input x̃.)
+
+3. **Gaussian Noise Corruption** (from Assignment Part 2):  
+   \[ \tilde{x} = x + \epsilon, \quad \epsilon \sim \mathcal{N}(0, \sigma^2) \]  
+   (Additive Gaussian noise with standard deviation σ, clamped to [0, 1].)
+
+(Note: The autoencoder architecture equations follow standard encoder/decoder patterns with ReLU activations and Sigmoid output.) -->
+
+# Assignment 3: Autoencoders (AE & DAE)
+
+## Overview
+**Title:** Coding Assignment: Autoencoders  
+**Objective:** Explore representation learning and unsupervised feature extraction through Autoencoders. Focus on understanding how bottleneck size affects reconstruction quality (Undercomplete AE) and how training on corrupted inputs enables robust feature learning (Denoising AE).  
+
+**Datasets Used:**  
+- Part 1: MNIST Handwritten Digits (multi-class: 0-9).  
+- Part 2: Tiny-ImageNet-10 (10 classes, 64×64 RGB image classification).  
+
+## Part 1: The Bottleneck Challenge (Undercomplete AE)
+**Dataset:** MNIST Handwritten Digits.  
+**Goal:** Understand how an autoencoder compresses high-dimensional image data into a compact latent space and then reconstructs it; study the effect of bottleneck size on reconstruction quality.  
+
+### Description
+Implement a symmetric Autoencoder for MNIST with the following architecture:  
+- **Encoder:** 784 → 128 → 64 → N (bottleneck).  
+- **Decoder:** N → 64 → 128 → 784.  
+- Activations: ReLU (hidden layers), Sigmoid (output layer).  
+- Loss: Binary Cross-Entropy (sum reduction).  
+- Optimizer: Adam (lr=1e-3).  
+- Train for 30 epochs with two different bottleneck sizes: **N=2** and **N=32**.  
+- Compare original vs. reconstructed digit images for both bottleneck settings to visually examine the effect of stronger vs. weaker compression.  
+
+### Analysis
+- **N=2 (Severe Bottleneck):** Final reconstruction loss ≈ 134.15; images are noticeably blurry, digit details are lost due to extreme compression into only 2 latent values. The network must discard significant information.  
+- **N=32 (Larger Bottleneck):** Final reconstruction loss ≈ 66.56; reconstructions are substantially clearer. More latent dims allow the model to preserve finer structures (strokes, curves).  
+- **Key Takeaway:** Latent space size directly correlates with reconstruction fidelity—a larger bottleneck retains more information, while a smaller bottleneck forces greater information loss and blurrier outputs.  
+
+![Reconstruction with Bottleneck as 2 and 128](A3/1_reconstruction-with-bottleneck-as-2-and-128.png)
+
+## Part 2: The Denoising Autoencoder (DAE) Experiment
+**Dataset:** Tiny-ImageNet-10 (64×64 RGB).  
+**Goal:** Build a Convolutional Denoising Autoencoder that learns robust features by training on corrupted images and evaluating reconstruction against clean originals.  
+
+### Description
+- **Architecture:** Convolutional Autoencoder (CAE) with:  
+  - Encoder: 3 Conv2d blocks (stride 2) → channels 3→32→64→128; Spatial: 64→32→16→8. Each block: Conv2d → BatchNorm2d → ReLU.  
+  - Decoder: 3 ConvTranspose2d blocks (stride 2) → channels 128→64→32→3; Spatial: 8→16→32→64. Each block: ConvTranspose2d → BatchNorm2d → ReLU (last uses Sigmoid).  
+  - Total trainable parameters: ~186,688.  
+- **Noise Type:** Gaussian noise (σ=0.3) added to clean images, clamped to [0, 1].  
+- **Loss:** MSE (between reconstructed output and clean target).  
+- **Optimizer:** Adam (lr=1e-3) with Cosine Annealing LR scheduler.  
+- **Training:** 30 epochs.  
+- **Key Idea:** The model receives a noisy image as input but is trained to minimize MSE against the clean image. This forces the network to learn the underlying data structure rather than memorizing noise.  
+
+### Analysis
+- DAE achieves best validation MSE ≈ 0.0072, demonstrating effective denoising.  
+- Qualitative results: The DAE successfully removes Gaussian noise while preserving core image structure (color, shape, edges).  
+- **Key Takeaway:** DAEs learn robust, noise-invariant features by being forced to extract meaningful patterns from corrupted inputs—a form of implicit regularization that improves generalization.  
+
+![Denoising Autoencoder Results](A3/2.1_denoising-AE.png)
+
+## Part 3: Latent Space & Anomaly Detection
+**Dataset:** MNIST (Q3.1) and Tiny-ImageNet-10 (Q3.2, Q3.3).  
+**Goal:** Explore how bottleneck representations can be visualized and exploited for anomaly detection; study the impact of output activation choice on reconstruction quality.  
+
+### Question 3.1: 2D Latent Manifold Visualization
+**Description:** Train the MNIST Autoencoder with bottleneck size **N=2** (as in Part 1), then pass the entire test set through the Encoder to extract 2D latent vectors. Plot these as a scatter plot colored by digit class (0–9).  
+- **Architecture:** Same as Part 1 (784 → 128 → 64 → 2 → 64 → 128 → 784).  
+- **Purpose:** Visualize how the AE organizes different digit classes in a 2-dimensional latent space—are they clustered or interleaved?  
+
+**Analysis:** The 2D scatter plot reveals that even with a severe bottleneck (N=2), the autoencoder learns to separate digit classes into loosely distinct regions in latent space. Some classes (e.g., 0, 1) form tight, well-separated clusters, while others (e.g., 4, 9) overlap, reflecting visual similarity. This demonstrates that the latent space captures meaningful structure—the autoencoder learns an implicit, unsupervised clustering of the data.  
+
+![Latent Space Visualization — MNIST with N=2](A3/3_latent-space-mnist.png)
+
+### Question 3.2: Anomaly Detection via Reconstruction Error
+**Description:** Train a Convolutional Autoencoder (CAE) on **9 of the 10 classes** in Tiny-ImageNet-10, holding out 1 class as the "unseen" anomaly class. Evaluate whether reconstruction error (MSE) can distinguish seen classes from the unseen anomaly class.  
+- **Architecture:** CAE with Sigmoid output activation (channels 3→16→32→64, spatial 64→32→16→8, symmetric decoder). MSE loss, Adam optimizer, 30 epochs.  
+- **Anomaly class:** One class excluded from training (e.g., `n12267677`).  
+- **Evaluation:** Compute per-image MSE reconstruction error for test images of seen vs. unseen classes. Compare average MSE and plot error distributions as histograms.  
+
+**Analysis:**  
+- **Avg MSE (Seen, 9 classes):** ≈ 0.0096 — the model reconstructs familiar patterns accurately.  
+- **Avg MSE (Unseen, anomaly):** ≈ 0.0122 — significantly higher, as the model has never learned the patterns of this class.  
+- The histogram of reconstruction errors shows a clear rightward shift for the unseen class, confirming that reconstruction error is a viable anomaly detection signal.  
+- **Key Takeaway:** An autoencoder trained only on "normal" data learns to compress and reconstruct those patterns well. When presented with novel/anomalous inputs, the higher reconstruction error acts as a natural anomaly score—this is the foundation of AE-based anomaly detection.  
+
+### Question 3.3: Ablation Study — Sigmoid vs. Tanh
+**Description:** Re-train the same CAE architecture on the same 9-class Tiny-ImageNet-10 split, but replace the **Sigmoid** output activation with **Tanh** (rescaling Tanh output from [-1, 1] to [0, 1] before computing MSE loss against clean [0, 1] data).  
+- Compare training loss curves (Sigmoid vs. Tanh).  
+- Compare reconstruction quality on seen and unseen test images.  
+- Assess whether the activation choice affects anomaly detection performance.  
+
+**Analysis:**  
+- Both models converge to similar final reconstruction losses, but the Tanh model's training curve may differ in early-epoch dynamics due to the rescaling step.  
+- Qualitatively, reconstructed images are comparable; quantitatively, MSE values for both seen and unseen tests are in the same range, confirming that output activation choice (Sigmoid vs. Tanh, when properly rescaled) has minimal impact on reconstruction fidelity for [0, 1] normalized images.  
+- **Key Takeaway:** The choice between Sigmoid and Tanh as the decoder's final activation is not a dominant factor in AE performance—provided the output range matches the data range. This ablation confirms that architectural decisions like bottleneck size and noise injection (Parts 1 & 2) are far more impactful than the choice of output nonlinearity.  
+
+## Key Overall Insights
+- Latent space dimensionality is the primary lever controlling reconstruction quality in Undercomplete AEs; severe compression (N=2) causes significant information loss but still enables meaningful latent space clustering.  
+- Denoising Autoencoders learn robust internal representations by training on corrupted data—effectively learning to "see through" noise.  
+- Reconstruction error from AEs trained on normal data is an effective anomaly detection signal—unseen/novel classes produce measurably higher MSE.  
+- Output activation choice (Sigmoid vs. Tanh) is a secondary concern compared to bottleneck size, noise injection, and training data composition.  
+- Convolutional architectures (Conv AE/DAE) are essential for image data, leveraging spatial structure for efficient encoding/decoding.  
+
+---
+
+<!-- ### Equations from the Assignment 4 and Report
+
+Here are the key equations extracted and formatted properly from the provided documents. I've presented each on a new line in a mathematical equation style (using LaTeX-like notation for clarity, as it's common for equations in text).
+
+1. **VAE Loss Function** (from Assignment Part 1.2):  
+   \[ \mathcal{L} = \mathcal{L}_{\text{recon}} + \beta \cdot D_{KL}(q(z|x) \| p(z)) \]  
+   (Total loss = Reconstruction Loss + β × KL-Divergence.)
+
+2. **Reconstruction Loss (BCE)** (from Assignment Part 1.2):  
+   \[ \mathcal{L}_{\text{recon}} = -\sum_{i} \left[ x_i \log(\hat{x}_i) + (1 - x_i) \log(1 - \hat{x}_i) \right] \]  
+
+3. **KL-Divergence** (from Assignment Part 1.2):  
+   \[ D_{KL} = -\frac{1}{2} \sum_{j=1}^{J} \left(1 + \log(\sigma_j^2) - \mu_j^2 - \sigma_j^2 \right) \]  
+
+4. **Reparameterization Trick** (from Assignment Part 1.1):  
+   \[ z = \mu + \sigma \cdot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I) \]  
+   (Where σ = exp(0.5 · log σ²), enabling backpropagation through sampling.)
+
+(Note: In β-VAE, β controls the weight of the KL-divergence term relative to reconstruction loss.) -->
+
+# Assignment 4: Variational Autoencoders (VAE)
+
+## Overview
+**Title:** Coding Assignment: Variational Autoencoders (VAE)  
+**Objective:** Understand generative modeling through VAEs. Focus on the reparameterization trick for differentiable sampling, the role of KL-divergence in regularizing the latent space, and the effect of the β parameter on the trade-off between reconstruction quality and latent space structure.  
+
+**Datasets Used:**  
+- Part 1 (Q1.1, Q1.2): MNIST Handwritten Digits (multi-class: 0-9).  
+- Part 2 (Q2.1, Q2.2): Tiny-ImageNet-10 (10 classes, 64×64 RGB image classification).  
+
+## Part 1: VAE on MNIST
+
+### Question 1.1: VAE Architecture & Reparameterization
+**Description:** Implement the core components of a Variational Autoencoder:  
+- **Encoder:** Shared layers (Linear → BatchNorm → ReLU) producing two parallel heads: μ (mean) and log σ² (log-variance).  
+- **Reparameterization Trick:** z = μ + σ · ε, where ε ~ N(0, I). During training, this allows sampling while preserving gradient flow. During inference, z = μ (deterministic).  
+- **Decoder:** Maps latent z back to input space via Linear → ReLU → Linear → Sigmoid.  
+- Deliverable: Working Encoder, Decoder, and Reparameterize modules in PyTorch.  
+
+**Analysis:** The reparameterization trick is the key innovation enabling backpropagation through the stochastic sampling layer. Without it, the sampling operation would block gradient flow, making end-to-end training impossible. The dual-head encoder naturally learns a distribution (mean + variance) rather than a single point, enabling generative capabilities.  
+
+### Question 1.2: The β-VAE Experiment
+**Description:** Train VAEs on MNIST (latent_dim=2) with different β values: β ∈ {0.1, 1, 5}. The VAE loss function is:  
+- **Total Loss = Reconstruction Loss + β × KL-Divergence**  
+- Reconstruction Loss: Binary Cross-Entropy (sum reduction).  
+- KL-Divergence: -0.5 × Σ(1 + log σ² − μ² − σ²).  
+- Track total, reconstruction, and KL-divergence losses across 20 epochs.  
+- Plot and compare loss curves for each β value.  
+
+**Analysis:**  
+- **β = 0.1 (Low):** Reconstruction-dominant; lowest recon loss (~142.27), highest KLD (~11.30). Latent space is less structured—samples may be sharper but less diverse/smoothly interpolated.  
+- **β = 1 (Standard VAE):** Balanced trade-off; recon loss ~143.17, KLD ~6.07. Good balance between reconstruction quality and latent regularity.  
+- **β = 5 (High):** KLD-dominant; highest recon loss (~151.94), lowest KLD (~3.72). Forces a highly regularized, structured latent space (close to N(0,I)) at the cost of blurrier/less accurate reconstructions.  
+- **Key Takeaway:** β acts as a regularizer governing the reconstruction-vs-structure trade-off. Higher β → more structured/smooth latent space, but worse per-sample reconstruction. Lower β → better reconstructions, but less well-organized latent space.  
+
+![Comparison between different β values](A4/1.2_comparision-between-diff-beta.png)
+
+## Part 2: Latent Space Exploration 
+#### Note : Part 2 is done using Part 3 VAE (CVAE) with latent_dim=128
+
+### Question 2.1: Latent Walk / Interpolation
+**Description:** Select two images from different classes (e.g., Class A and Class B). Encode both to their latent means (μ_A, μ_B). Perform linear interpolation in latent space:  
+- z_new = α · μ_A + (1 − α) · μ_B, sweeping α from 1 to 0 across N steps.  
+- Decode each interpolated z to visualize smooth transitions between classes.  
+
+**Analysis:** The latent walk demonstrates smooth, semantically meaningful transitions between two image classes—e.g., gradually morphing from one object type to another. This confirms that the VAE has learned a continuous, structured latent space where nearby points produce similar outputs. The smoothness of transitions is a hallmark of well-regularized VAEs and validates the role of the KL-divergence term.  
+
+![Latent Walk / Interpolation](A4/2.1.png)
+
+### Question 2.2: Generating from Pure Noise
+**Description:** Sample latent vectors **z ~ N(0, I)** (latent_dim=128) directly from the standard normal prior—without encoding any real image. Decode each sampled z to generate entirely novel images. Perform this for both the Tiny-ImageNet CVAE and an MNIST CVAE (both with latent_dim=128).  
+- Generate a grid of 16 images (4×4) per dataset.  
+- For MNIST, convert 3-channel output back to grayscale for visualization.  
+
+**Analysis:** Generated images from pure noise demonstrate that the VAE has learned a meaningful generative model of the data distribution. For MNIST, sampled images resemble recognizable (though sometimes blurry) digit shapes, confirming that the prior N(0, I) aligns well with the learned latent distribution. For Tiny-ImageNet, generated samples show coherent color and texture patterns, though fine-grained object details are limited by the relatively shallow CVAE architecture and short training (5 epochs). This validates the core VAE premise: by regularizing the latent space to match a known prior, we can generate new samples by simply sampling from that prior and decoding—a capability entirely absent from deterministic AEs.  
+
+![MNIST — Generated from Pure Noise](A4/2.2_mnist_generated.png)
+
+![Tiny-ImageNet — Generated from Pure Noise](A4/2.2_tiny_generated.png)
+
+## Part 3: Convolutional VAE on Tiny-ImageNet-10
+
+### Convolutional VAE Architecture
+**Description:** Extend the VAE to handle 64×64 RGB images (Tiny-ImageNet-10) using a convolutional architecture:  
+- **Encoder:** Conv2d blocks (stride 2) progressively downsampling spatial dimensions while increasing channels: 3→32→64→128 (spatial: 64→32→16→8→4). Each block: Conv2d → BatchNorm2d → LeakyReLU.  
+- **Latent Mapping:** Flatten → fc_mu and fc_logvar heads (latent_dim=128).  
+- **Decoder:** ConvTranspose2d blocks upsampling back: channels 128→64→32→3 (spatial: 4→8→16→32→64). Each block: ConvTranspose2d → BatchNorm2d → LeakyReLU (last uses Sigmoid).  
+- Loss: MSE (reconstruction) + β × KLD.  
+- Optimizer: Adam (lr=1e-3), Cosine Annealing scheduler.  
+
+**Analysis:** The convolutional VAE effectively learns to encode and reconstruct 64×64 RGB images. Using Conv2d/ConvTranspose2d with stride-2 downsampling/upsampling mirrors the standard AE pattern but adds the reparameterization-based regularization. Reconstruction quality depends heavily on latent_dim and β choice.  
+
+![8 Classes in Tiny-ImageNet — CVAE Reconstructions](A4/3_8-classes-in-tiny-imagenet.png)
+
+## Key Overall Insights
+- The **reparameterization trick** (z = μ + σ · ε) is essential for enabling gradient-based optimization through stochastic sampling in VAEs.  
+- The **β parameter** controls the balance between reconstruction fidelity and latent space structure: higher β enforces a more Gaussian latent distribution (better for generation/interpolation) at the cost of reconstruction sharpness.  
+- **Convolutional VAEs** extend the generative framework to complex image data, with latent walks confirming semantically smooth interpolation in the learned latent space.  
+- **Generation from pure noise** validates the generative model: sampling z ~ N(0, I) and decoding produces plausible novel samples, demonstrating that the VAE has learned the data distribution—not just memorized training examples.  
+- Experiments emphasize the generative nature of VAEs vs. deterministic AEs—VAEs learn distributions, not just point encodings.  
+
